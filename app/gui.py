@@ -33,8 +33,7 @@ class AplicacionPL:
             "Simplex algebraico",
             "Simplex revisado",
             "M grande",
-            "Dos fases",
-            "Análisis de sensibilidad"
+            "Dos fases"
         )
         self.combo_metodo.current(0)
         self.combo_metodo.pack()
