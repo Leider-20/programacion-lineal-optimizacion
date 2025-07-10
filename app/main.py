@@ -1,6 +1,6 @@
 import tkinter
 
-from app.gui import AplicacionPL
+from app.interfaz import AplicacionPL
 
 if __name__ == "__main__":
     raiz = tkinter.Tk()

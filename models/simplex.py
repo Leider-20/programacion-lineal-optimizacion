@@ -1,20 +1,19 @@
 import numpy as np
 
 class Simplex:
-    def __init__(self, coef_objetivo, restricciones, recursos, modo="min"):
-        self.modo = modo.strip().lower()
+    def __init__(self, coef_objetivo, restricciones, recursos):
         self.c = np.array(coef_objetivo, dtype=float)
-
-        # Si el usuario seleccionó "min", invertimos los coeficientes
-        self.invertir_resultado = False
-        if self.modo == "max":
-            self.c *= -1
-            self.invertir_resultado = True
-
         self.A = np.array(restricciones, dtype=float)
         self.b = np.array(recursos, dtype=float)
 
         self.num_restricciones, self.num_variables = self.A.shape
+
+        # Detectar si es minimización (todos los coeficientes ≥ 0)
+        self.invertir_resultado = False
+        if np.all(self.c >= 0):
+            self.c *= -1
+            self.invertir_resultado = True
+
         self._preparar_tabla()
 
     def _preparar_tabla(self):

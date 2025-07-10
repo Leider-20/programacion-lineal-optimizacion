@@ -1,19 +1,19 @@
 import numpy as np
 
 class SimplexTabular:
-    def __init__(self, coef_objetivo, restricciones, recursos, modo="min"):
-        self.modo = modo.lower().strip()
-        self.c = np.array(coef_objetivo, dtype=float)
-
-        # Convertimos minimización a maximización
-        self.invertir_resultado = False
-        if self.modo == "max":
-            self.c *= -1
-            self.invertir_resultado = True
-
+    def __init__(self, coef_objetivo, restricciones, recursos):
+        self.c_original = np.array(coef_objetivo, dtype=float)
         self.A = np.array(restricciones, dtype=float)
         self.b = np.array(recursos, dtype=float)
         self.num_restricciones, self.num_variables = self.A.shape
+
+        # Detectar si es minimización
+        self.invertir_resultado = False
+        if np.all(self.c_original >= 0):
+            self.c = -self.c_original
+            self.invertir_resultado = True
+        else:
+            self.c = self.c_original
 
         # Construir tabla inicial con variables de holgura
         self.tabla = np.hstack([self.A, np.eye(self.num_restricciones), self.b.reshape(-1, 1)])

@@ -1,19 +1,19 @@
 import numpy as np
 
 class SimplexRevisado:
-    def __init__(self, coef_objetivo, restricciones, recursos, modo="min"):
-        self.modo = modo.lower().strip()
-        self.c = np.array(coef_objetivo, dtype=float)
-
-        # Convertimos minimización a maximización
-        self.invertir_resultado = False
-        if self.modo == "max":
-            self.c *= -1
-            self.invertir_resultado = True
-
+    def __init__(self, coef_objetivo, restricciones, recursos):
+        self.c_original = np.array(coef_objetivo, dtype=float)
         self.A = np.array(restricciones, dtype=float)
         self.b = np.array(recursos, dtype=float)
         self.num_restricciones, self.num_variables = self.A.shape
+
+        # Detectar si es minimización
+        self.invertir_resultado = False
+        if np.all(self.c_original >= 0):
+            self.c = -self.c_original
+            self.invertir_resultado = True
+        else:
+            self.c = self.c_original
 
         # Ampliamos la matriz A con variables de holgura
         self.A_ext = np.hstack([self.A, np.eye(self.num_restricciones)])
@@ -43,7 +43,7 @@ class SimplexRevisado:
             evaluadores = c_b @ B_inv @ N - c_n
             print("Zj - Cj:", np.round(evaluadores, 4))
 
-            # Criterio de optimalidad unificado (siempre maximizando)
+            # Criterio de optimalidad (siempre maximizando)
             if np.all(evaluadores <= 1e-8):
                 print("\nSolución óptima encontrada")
                 self.mostrar_solucion(x_b, z)

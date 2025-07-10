@@ -2,11 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class MetodoGrafico:
-    def __init__(self, coef_objetivo, restricciones, recursos, modo="max"):
-        self.modo = modo.lower()
+    def __init__(self, coef_objetivo, restricciones, recursos, signos=None):
         self.c = np.array(coef_objetivo, dtype=float)
         self.A = np.array(restricciones, dtype=float)
         self.b = np.array(recursos, dtype=float)
+        self.signos = signos or ["<="] * len(self.b)
 
     def resolver(self):
         if self.A.shape[1] != 2:
@@ -24,9 +24,8 @@ class MetodoGrafico:
             restricciones_graficas.append(x2)
 
         plt.figure(figsize=(8, 6))
-
         for i, x2 in enumerate(restricciones_graficas):
-            plt.plot(x1, x2, label=f"Restricción {i+1}")
+            plt.plot(x1, x2, label=f"Restricción {i+1} ({self.signos[i]})")
 
         plt.xlim(0, max(x1))
         plt.ylim(0, 100)
@@ -38,21 +37,29 @@ class MetodoGrafico:
         # Encontrar vértices factibles
         vertices = self.obtener_vertices()
         vertices = [np.array(v) for v in vertices if v is not None and len(v) == 2]
-        vertices_viables = [v for v in vertices if np.all(self.A @ v <= self.b + 1e-6) and np.all(v >= 0)]
+
+        vertices_viables = []
+        for v in vertices:
+            if np.all(v >= 0):
+                cumple = True
+                for i in range(len(self.A)):
+                    lhs = self.A[i] @ v
+                    if self.signos[i] == "<=" and lhs > self.b[i] + 1e-6:
+                        cumple = False
+                    elif self.signos[i] == ">=" and lhs < self.b[i] - 1e-6:
+                        cumple = False
+                    elif self.signos[i] == "=" and abs(lhs - self.b[i]) > 1e-6:
+                        cumple = False
+                if cumple:
+                    vertices_viables.append(v)
 
         if not vertices_viables:
             print("\nNo hay región factible.")
             return
 
         valores_z = [self.c @ v for v in vertices_viables]
-
-        if self.modo == "max":
-            z_opt = max(valores_z)
-            idx = valores_z.index(z_opt)
-        else:
-            z_opt = min(valores_z)
-            idx = valores_z.index(z_opt)
-
+        z_opt = max(valores_z)
+        idx = valores_z.index(z_opt)
         optimo = vertices_viables[idx]
 
         for v in vertices_viables:
@@ -65,8 +72,7 @@ class MetodoGrafico:
         for i, v in enumerate(vertices_viables):
             print(f"Punto {i+1}: x1 = {v[0]:.2f}, x2 = {v[1]:.2f}, Z = {valores_z[i]:.2f}")
 
-        tipo = "máxima" if self.modo == "max" else "mínima"
-        print(f"\nSolución {tipo}: x1 = {optimo[0]:.2f}, x2 = {optimo[1]:.2f}, Z = {z_opt:.2f}")
+        print(f"\nSolución óptima (mayor Z): x1 = {optimo[0]:.2f}, x2 = {optimo[1]:.2f}, Z = {z_opt:.2f}")
 
     def obtener_vertices(self):
         vertices = []
