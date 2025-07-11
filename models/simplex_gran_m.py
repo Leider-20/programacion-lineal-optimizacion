@@ -1,137 +1,117 @@
 import numpy as np
 
 class MetodoGranM:
-    def __init__(self, coef_objetivo, restricciones, recursos, signos, modo="max"):
+    def __init__(self, c, A, b, signos, modo="min"):
         self.modo = modo.lower().strip()
-        if self.modo in ("max", "maximizar"):
-            self.sentido = "max"
-            self.M = -1e6
-        elif self.modo in ("min", "minimizar"):
-            self.sentido = "min"
-            self.M =  1e6
-        else:
-            raise ValueError("modo debe ser 'max'/'maximizar' o 'min'/'minimizar'")
+        self.M = 1e6
+        self.tipo = "min" if self.modo in ["min", "minimizar"] else "max"
+        self.penalizacion = self.M if self.tipo == "min" else -self.M
 
-        self.c_orig = np.array(coef_objetivo, float)
-        self.A = np.array(restricciones, float)
-        self.b = np.array(recursos, float)
+        self.c_original = np.array(c, dtype=float)
+        self.A = np.array(A, dtype=float)
+        self.b = np.array(b, dtype=float)
         self.signos = signos
+        self.num_restricciones, self.num_variables = self.A.shape
 
-        m, n = self.A.shape
-        # contar variables extras
-        n_h = sum(1 for s in signos if s == "<=")
-        n_e = sum(1 for s in signos if s == ">=")
-        n_a = sum(1 for s in signos if s in (">=", "="))
-        total_extra = n_h + n_e + n_a
+        self.tabla, self.c_ext, self.basicas = self._crear_tabla()
 
-        # preparar c_ext: [coef_x ...] + [0]*n_h + [0]*n_e + [M]*n_a + [0 para LD]
-        self.c_ext = np.concatenate([
-            self.c_orig,
-            np.zeros(n_h + n_e),
-            np.full(n_a, self.M),
-            [0]
-        ])
-
-        # construir tabla inicial
-        A_ext = []
+    def _crear_tabla(self):
+        filas = []
+        c_ext = list(self.c_original)
         basicas = []
-        idx_h = idx_e = idx_a = 0
+        columna_extra = 0
 
-        for i, s in enumerate(signos):
-            fila = np.zeros(n + total_extra)
-            fila[:n] = self.A[i]
+        for i in range(self.num_restricciones):
+            fila = list(self.A[i])
+            signo = self.signos[i]
 
-            # columna base de holgura
-            if s == "<=":
-                col = n + idx_h
-                fila[col] = 1
-                basicas.append(col)
-                idx_h += 1
+            if signo == "<=":
+                fila += [1 if j == i else 0 for j in range(self.num_restricciones)]
+                c_ext.append(0)
+                basicas.append(self.num_variables + columna_extra)
+                columna_extra += 1
 
-            # exceso + artificial
-            elif s == ">=":
-                col_e = n + n_h + idx_e
-                col_a = n + n_h + n_e + idx_a
-                fila[col_e] = -1
-                fila[col_a] =  1
-                basicas.append(col_a)
-                idx_e += 1
-                idx_a += 1
+            elif signo == ">=":
+                fila += [-1 if j == i else 0 for j in range(self.num_restricciones)]
+                fila += [1 if j == i else 0 for j in range(self.num_restricciones)]
+                c_ext += [0, self.penalizacion]
+                basicas.append(self.num_variables + columna_extra + 1)
+                columna_extra += 2
 
-            # solo artificial
-            elif s == "=":
-                col_a = n + n_h + n_e + idx_a
-                fila[col_a] = 1
-                basicas.append(col_a)
-                idx_a += 1
+            elif signo == "=":
+                fila += [0 for _ in range(self.num_restricciones)]
+                fila += [1 if j == i else 0 for j in range(self.num_restricciones)]
+                c_ext += [0, self.penalizacion]
+                basicas.append(self.num_variables + columna_extra + 1)
+                columna_extra += 2
 
             else:
-                raise ValueError(f"signo inválido: {s}")
+                raise ValueError(f"Signo no válido: {signo}")
 
-            A_ext.append(fila)
+            filas.append(fila)
 
-        # tabla simplex con LD al final
-        self.tabla = np.hstack([np.array(A_ext), self.b.reshape(-1,1)])
-        self.basicas = basicas
-        self.num_restricciones, _ = self.tabla.shape
+        c_ext.append(0)
+        tabla = np.hstack([np.array(filas, dtype=float), self.b.reshape(-1, 1)])
+        return tabla, np.array(c_ext), basicas
 
     def resolver(self):
-        it = 0
+        iteracion = 0
         while True:
-            print(f"\n--- Iteración {it} ---")
-            zj   = self.c_ext[self.basicas] @ self.tabla[:,:-1]
-            zj_c = zj - self.c_ext[:-1]
-            z_val= self.c_ext[self.basicas] @ self.tabla[:,-1]
+            print(f"\nIteración {iteracion}:")
+            zj = self.c_ext[self.basicas] @ self.tabla[:, :-1]
+            zj_cj = zj - self.c_ext[:-1]
+            z_val = self.c_ext[self.basicas] @ self.tabla[:, -1]
 
-            print("Zj - Cj:", np.round(zj_c,4))
-            print("Z =", z_val)
+            print("Zj - Cj:", np.round(zj_cj, 4))
+            print(f"Z = {z_val:.2f}")
 
-            # criterio de optimalidad
-            if self.sentido == "max":
-                if np.all(zj_c <= 1e-8):
-                    break
-                col_piv = np.argmax(zj_c)
+            if self.tipo == "min":
+                optimo = np.all(zj_cj >= -1e-8)
+                if optimo:
+                    print("\nÓptimo encontrado")
+                    return self._mostrar_solucion()
+                col_piv = np.argmin(zj_cj)
             else:
-                if np.all(zj_c >= -1e-8):
-                    break
-                col_piv = np.argmin(zj_c)
+                optimo = np.all(zj_cj <= 1e-8)
+                if optimo:
+                    print("\nÓptimo encontrado")
+                    return self._mostrar_solucion()
+                col_piv = np.argmax(zj_cj)
 
-            # prueba de acotamiento
             razones = [
-                self.tabla[i,-1] / self.tabla[i,col_piv]
-                if self.tabla[i,col_piv] > 0 else np.inf
+                self.tabla[i, -1] / self.tabla[i, col_piv] if self.tabla[i, col_piv] > 1e-8 else np.inf
                 for i in range(self.num_restricciones)
             ]
+
             if np.all(np.isinf(razones)):
-                print("Problema no acotado")
+                print("\nProblema no acotado.")
                 return
 
             fila_piv = np.argmin(razones)
-            print(f"Pivote → fila {fila_piv}, columna {col_piv}")
+            print(f"Pivote: fila {fila_piv}, columna {col_piv}")
 
-            # pivotear
-            self.tabla[fila_piv] /= self.tabla[fila_piv,col_piv]
+            self.tabla[fila_piv] /= self.tabla[fila_piv, col_piv]
             for i in range(self.num_restricciones):
                 if i != fila_piv:
-                    self.tabla[i] -= self.tabla[i,col_piv] * self.tabla[fila_piv]
+                    self.tabla[i] -= self.tabla[i, col_piv] * self.tabla[fila_piv]
 
             self.basicas[fila_piv] = col_piv
-            it += 1
+            iteracion += 1
 
-        # mostrar solución
-        x = np.zeros(len(self.c_ext)-1)
+    def _mostrar_solucion(self):
+        x = np.zeros(len(self.c_ext) - 1)
         for i, var in enumerate(self.basicas):
             if var < len(x):
-                x[var] = self.tabla[i,-1]
+                x[var] = self.tabla[i, -1]
 
-        # verificar artificiales
-        art_cols = [i for i, v in enumerate(self.c_ext[:-1]) if abs(v)==abs(self.M)]
-        if any(x[c]>1e-6 for c in art_cols):
-            print("Sin solución factible (artificiales activas).")
+        artificiales = [i for i, coef in enumerate(self.c_ext[:-1]) if abs(coef) == abs(self.penalizacion)]
+        activas = [i for i in artificiales if x[i] > 1e-6]
+        if activas:
+            print("No hay solución factible (artificiales activas).")
             return
 
-        z_opt = self.c_orig @ x[:self.A.shape[1]]
-        print("\n→ Solución óptima:")
-        for j in range(self.A.shape[1]):
-            print(f" x{j+1} = {x[j]:.2f}")
-        print(f" Z = {z_opt:.2f}")
+        z = self.c_original @ x[:self.num_variables]
+        print("\nSolución óptima:")
+        for i in range(self.num_variables):
+            print(f"x{i+1} = {x[i]:.2f}")
+        print(f"Z = {z:.2f}")

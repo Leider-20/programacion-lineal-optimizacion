@@ -1,6 +1,6 @@
 import numpy as np
 
-class Simplex:
+class SimplexTabular:
     def __init__(self, coef_objetivo, restricciones, recursos):
         self.c = np.array(coef_objetivo, dtype=float)
         self.A = np.array(restricciones, dtype=float)

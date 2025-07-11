@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from models.simplex_tabular import Simplex
+from models.simplex_tabular import SimplexTabular
 from models.metodo_grafico import MetodoGrafico
 from models.simplex_gran_m import MetodoGranM
 from models.simplex_revisado import SimplexRevisado
@@ -22,7 +22,7 @@ class AplicacionPL:
         self.combo_metodo = ttk.Combobox(self.raiz, textvariable=self.metodo_var, state="readonly")
         self.combo_metodo['values'] = (
             "Método gráfico",
-            "Simplex",
+            "Simplex tabular",
             "Simplex revisado",
             "M grande"
         )
@@ -71,8 +71,8 @@ class AplicacionPL:
 
             self.salida.delete("1.0", tk.END)
 
-            if metodo == "Simplex":
-                solucionador = Simplex(c, A, b)
+            if metodo == "Simplex tabular":
+                solucionador = SimplexTabular(c, A, b)
                 self._redirigir_salida(solucionador.resolver)
 
             elif metodo == "Simplex revisado":
