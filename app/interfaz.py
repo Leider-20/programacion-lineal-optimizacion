@@ -1,8 +1,5 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-import numpy as np
-import sys
-import io
 
 from models.simplex import Simplex
 from models.simplex_tabular import SimplexTabular
@@ -10,7 +7,7 @@ from models.simplex_algebraico import SimplexAlgebraico
 from models.metodo_grafico import MetodoGrafico
 from models.simplex_gran_m import MetodoGranM
 from models.simplex_revisado import SimplexRevisado
-from analisis_sensibilidad import AnalisisSensibilidad
+from models.analisis_sensibilidad import AnalisisSensibilidad
 
 
 class AplicacionPL:
