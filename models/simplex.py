@@ -8,7 +8,7 @@ class Simplex:
 
         self.num_restricciones, self.num_variables = self.A.shape
 
-        # Detectar si es minimización (todos los coeficientes ≥ 0)
+        # Detectar si es minimización
         self.invertir_resultado = False
         if np.all(self.c >= 0):
             self.c *= -1

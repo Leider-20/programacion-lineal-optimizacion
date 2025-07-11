@@ -3,7 +3,6 @@ from tkinter import ttk, messagebox
 
 from models.simplex import Simplex
 from models.simplex_tabular import SimplexTabular
-from models.simplex_algebraico import SimplexAlgebraico
 from models.metodo_grafico import MetodoGrafico
 from models.simplex_gran_m import MetodoGranM
 from models.simplex_revisado import SimplexRevisado
@@ -26,7 +25,6 @@ class AplicacionPL:
             "Método gráfico",
             "Simplex",
             "Simplex tabular",
-            "Simplex algebraico",
             "Simplex revisado",
             "M grande"
         )
@@ -34,12 +32,12 @@ class AplicacionPL:
         self.combo_metodo.pack()
 
         # Función objetivo
-        ttk.Label(self.raiz, text="Función objetivo (separar por comas):").pack(pady=5)
+        ttk.Label(self.raiz, text="Coeficientes de la función objetivo (separar por comas):").pack(pady=5)
         self.entrada_objetivo = ttk.Entry(self.raiz, width=100)
         self.entrada_objetivo.pack()
 
         # Restricciones
-        ttk.Label(self.raiz, text="Restricciones (una por línea, coeficientes separados por comas):").pack(pady=5)
+        ttk.Label(self.raiz, text="Restricciones (una por línea, solo coeficientes, separados por comas):").pack(pady=5)
         self.caja_restricciones = tk.Text(self.raiz, height=6, width=100)
         self.caja_restricciones.pack()
 
@@ -81,10 +79,6 @@ class AplicacionPL:
 
             elif metodo == "Simplex tabular":
                 solucionador = SimplexTabular(c, A, b)
-                self._redirigir_salida(solucionador.resolver)
-
-            elif metodo == "Simplex algebraico":
-                solucionador = SimplexAlgebraico(c, A, b)
                 self._redirigir_salida(solucionador.resolver)
 
             elif metodo == "Simplex revisado":

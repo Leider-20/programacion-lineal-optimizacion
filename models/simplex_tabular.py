@@ -17,7 +17,7 @@ class SimplexTabular:
 
         # Construir tabla inicial con variables de holgura
         self.tabla = np.hstack([self.A, np.eye(self.num_restricciones), self.b.reshape(-1, 1)])
-        self.c_extendida = np.concatenate([self.c, np.zeros(self.num_restricciones + 1)])  # +1 para RHS
+        self.c_extendida = np.concatenate([self.c, np.zeros(self.num_restricciones + 1)])  # +1 para LD
         self.base = list(range(self.num_variables, self.num_variables + self.num_restricciones))
 
     def imprimir_tabla(self):

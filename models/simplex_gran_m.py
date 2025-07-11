@@ -1,7 +1,7 @@
 import numpy as np
 
 class MetodoGranM:
-    def __init__(self, c, A, b, signos, modo="max"):
+    def __init__(self, coef_objetivo, restricciones, recursos, signos, modo="max"):
         self.modo = modo.lower().strip()
         if self.modo in ("max", "maximizar"):
             self.sentido = "max"
@@ -12,9 +12,9 @@ class MetodoGranM:
         else:
             raise ValueError("modo debe ser 'max'/'maximizar' o 'min'/'minimizar'")
 
-        self.c_orig = np.array(c, float)
-        self.A      = np.array(A, float)
-        self.b      = np.array(b, float)
+        self.c_orig = np.array(coef_objetivo, float)
+        self.A = np.array(restricciones, float)
+        self.b = np.array(recursos, float)
         self.signos = signos
 
         m, n = self.A.shape
@@ -24,7 +24,7 @@ class MetodoGranM:
         n_a = sum(1 for s in signos if s in (">=", "="))
         total_extra = n_h + n_e + n_a
 
-        # preparar c_ext: [coef_x ...] + [0]*n_h + [0]*n_e + [M]*n_a + [0 para RHS]
+        # preparar c_ext: [coef_x ...] + [0]*n_h + [0]*n_e + [M]*n_a + [0 para LD]
         self.c_ext = np.concatenate([
             self.c_orig,
             np.zeros(n_h + n_e),
@@ -70,7 +70,7 @@ class MetodoGranM:
 
             A_ext.append(fila)
 
-        # tabla simplex con RHS al final
+        # tabla simplex con LD al final
         self.tabla = np.hstack([np.array(A_ext), self.b.reshape(-1,1)])
         self.basicas = basicas
         self.num_restricciones, _ = self.tabla.shape
@@ -134,4 +134,4 @@ class MetodoGranM:
         print("\n→ Solución óptima:")
         for j in range(self.A.shape[1]):
             print(f" x{j+1} = {x[j]:.2f}")
-        print(f" Z ({'máxima' if self.sentido=='max' else 'mínima'}) = {z_opt:.2f}")
+        print(f" Z = {z_opt:.2f}")
